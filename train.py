@@ -8,13 +8,13 @@ from vehicledataset import VehicleDataset
 # load dataset
 dataset = VehicleDataset("state.csv", "control.csv")
 
+# get input size and output size from the data
 input_size, output_size = dataset.io_size()
-print(input_size, output_size)
 
 # set hyperparams
 lr = 0.001
 batch_size = 64
-num_epochs = 30
+num_epochs = 50
 
 # train, test, val ratios
 train_ratio = 0.64
@@ -83,3 +83,16 @@ with torch.no_grad():
 
 test_loss /= len(test_loader)
 print(f"Test Loss: {test_loss}")
+
+# get model weights from first layer
+weights = model.fc1.weight.data.abs().numpy()
+
+# rank feature importance
+features = dataset.features
+importance = dict(zip(features, weights.flatten()))
+
+# sort from most to least important
+sorted_features = sorted(importance.items(), key=lambda x: x[1], reverse=True)
+
+for feature, importance in sorted_features[:5]:
+    print(f"{feature}: {importance:.4f}")

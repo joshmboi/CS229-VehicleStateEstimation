@@ -1,35 +1,39 @@
 import pandas as pd
 import numpy as np
 import torch
-from torchvision.transforms import v2
 from torch.utils.data import Dataset
+from sklearn.preprocessing import StandardScaler
 
 
 class VehicleDataset(Dataset):
     def __init__(self, state_file, control_file):
-        self.data = pd.concat([
-            pd.read_csv(state_file, dtype=np.float32),
-            pd.read_csv(control_file, dtype=np.float32)
-        ], axis=1)[:-1].reset_index(drop=True).transpose()
-        self.labels = pd.read_csv(
-            state_file,
-            dtype=np.float32,
-        )[1:].reset_index(drop=True).transpose()
-        self.transform = v2.Compose([v2.ToDtype(torch.float32, scale=True)])
+        # Read state in and normalize with z-scores
+        state = pd.read_csv(state_file, dtype=np.float32)
+        state_norm = torch.tensor(
+            StandardScaler().fit_transform(state),
+            dtype=torch.float32
+        )
+
+        # Read control in and normalize with z-scores
+        control = pd.read_csv(control_file, dtype=np.float32)
+        control_norm = torch.tensor(
+            StandardScaler().fit_transform(control),
+            dtype=torch.float32
+        )
+
+        # Set values for data and labels
+        # We are mapping each (state + control) to the next state
+        self.data = torch.cat((state_norm, control_norm), dim=1)[:-1]
+        self.labels = state_norm[1:]
+
+        # Store feature names
+        self.features = list(state.columns) + list(control.columns)
 
     def io_size(self):
-        return self.data.shape[0], self.labels.shape[0]
+        return self.data.shape[1], self.labels.shape[1]
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, i):
-        data_item = torch.tensor(
-            self.data.iloc[:, i].values,
-            dtype=torch.float32
-        )
-        label_item = torch.tensor(
-            self.labels.iloc[:, i].values,
-            dtype=torch.float32
-        )
-        return self.transform(data_item), self.transform(label_item)
+        return self.data[i], self.labels[i]
