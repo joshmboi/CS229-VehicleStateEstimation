@@ -1,12 +1,13 @@
 import torch
 import torch.optim as optim
 from torch.utils.data import random_split, DataLoader
+from tqdm import tqdm
 
 from nn import NN
 from vehicledataset import VehicleDataset
 
 # load dataset
-dataset = VehicleDataset("state.csv", "control.csv")
+dataset = VehicleDataset("state3.csv", "control3.csv")
 
 # get input size and output size from the data
 input_size, output_size = dataset.io_size()
@@ -42,8 +43,9 @@ loss_fn = torch.nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=lr)
 
 train_losses, val_losses = [], []
+t = tqdm(range(num_epochs), desc="Training...")
 
-for epoch in range(num_epochs):
+for epoch in t:
     # train
     train_loss = 0
     for input, target in train_loader:
@@ -72,7 +74,12 @@ for epoch in range(num_epochs):
     val_loss /= len(val_loader)
     train_losses.append(train_loss)
     val_losses.append(val_loss)
-    print(f"Epoch {epoch}, Train Loss: {train_loss}, Val Loss: {val_loss}")
+
+    # Create description string
+    desc = f"Epoch {epoch+1}: "
+    desc += f"Training Loss: {train_loss:.4f}, "
+    desc += f"Validation Loss: {val_loss:.4f}"
+    t.set_description(desc)
 
 model.eval()
 test_loss = 0
@@ -83,6 +90,16 @@ with torch.no_grad():
 
 test_loss /= len(test_loader)
 print(f"Test Loss: {test_loss}")
+
+mean_loss = 0
+mean_val = torch.mean(dataset.labels, axis=0)
+with torch.no_grad():
+    for input, target in test_loader:
+        output = mean_val.expand_as(target)
+        mean_loss += loss_fn(output, target).item()
+
+mean_loss /= len(test_loader)
+print(f"Mean Loss: {mean_loss}")
 
 # get model weights from first layer
 weights = model.fc1.weight.data.abs().numpy()

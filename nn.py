@@ -15,9 +15,9 @@ class NN(nn.Module):
         super(NN, self).__init__()
 
         # Three fully connected layers for network
-        self.fc1 = nn.Linear(input_dim, 128)
-        self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, output_dim)
+        self.fc1 = nn.Linear(input_dim, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, output_dim)
 
     def forward(self, x):
         """
