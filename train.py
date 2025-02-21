@@ -7,10 +7,11 @@ from nn import NN
 from vehicledataset import VehicleDataset
 
 # load dataset
-dataset = VehicleDataset("state3.csv", "control3.csv")
+dataset = VehicleDataset("data/dry_data_state1.csv", "data/dry_data_control1.csv")
 
 # get input size and output size from the data
 input_size, output_size = dataset.io_size()
+print(dataset.features)
 
 # set hyperparams
 lr = 0.001
