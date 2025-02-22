@@ -1,16 +1,18 @@
+import json
 import torch
 import torch.optim as optim
 from torch.utils.data import random_split, DataLoader, TensorDataset
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+
 from nn import NN
 from vehicledataset import VehicleDataset
 
 data_files = [
-    ("data/ice_data_state1.csv", "data/ice_data_control1.csv"),
-    ("data/ice_data_state2.csv", "data/ice_data_control2.csv"),
-    ("data/ice_data_state3.csv", "data/ice_data_control3.csv"),
-    ("data/ice_data_state4.csv", "data/ice_data_control4.csv"),
+    ("data/wet_data_state1.csv", "data/wet_data_control1.csv"),
+    ("data/wet_data_state2.csv", "data/wet_data_control2.csv"),
+    ("data/wet_data_state3.csv", "data/wet_data_control3.csv"),
+    ("data/wet_data_state4.csv", "data/wet_data_control4.csv"),
 ]
 
 # load dataset
@@ -18,7 +20,6 @@ dataset = VehicleDataset(data_files)
 
 # get input size and output size from the data
 input_size, output_size = dataset.io_size()
-print(dataset.features)
 
 # set hyperparams
 lr = 0.001
@@ -138,7 +139,20 @@ with torch.no_grad():
 mean_loss /= len(test_loader)
 print(f"Mean Loss: {mean_loss}")
 
-torch.save(model, "./models/ice")
+torch.save(model, "./models/nn_wet.pth")
+
+# save mean and standard deviation for future use
+params_file = "./models/nn_wet_params.json"
+params = {
+        "mean_data": mean_data.tolist(),
+        "std_dev_data": std_dev_data.tolist(),
+        "mean_labels": mean_labels.tolist(),
+        "std_dev_labels": std_dev_labels.tolist()
+}
+
+# write to json file
+with open(params_file, "w", encoding="utf-8") as f:
+    json.dump(params, f, ensure_ascii=False, indent=4)
 
 # get model weights from first layer
 weights = model.fc1.weight.data.abs().numpy()
@@ -158,5 +172,5 @@ plt.plot(range(1, 51), val_losses)
 plt.legend(["Training Error", "Validation Error"])
 plt.xlabel("Epochs")
 plt.ylabel("Mean Squared Error")
-plt.title("Errors of Model While Training on Ice Data")
+plt.title("Errors of Model While Training on Wet Data")
 plt.show()

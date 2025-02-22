@@ -1,15 +1,18 @@
+import json
 import torch
+from tqdm import tqdm
 import xgboost as xgb
+import matplotlib.pyplot as plt
 from torch.utils.data import random_split
-from sklearn.metrics import root_mean_squared_error
+from sklearn.metrics import mean_squared_error
 
 from vehicledataset import VehicleDataset
 
 data_files = [
-    ("data/dry_data_state1.csv", "data/dry_data_control1.csv"),
-    ("data/dry_data_state2.csv", "data/dry_data_control2.csv"),
-    ("data/dry_data_state3.csv", "data/dry_data_control3.csv"),
-    ("data/dry_data_state4.csv", "data/dry_data_control4.csv"),
+    ("data/ice_data_state1.csv", "data/ice_data_control1.csv"),
+    ("data/ice_data_state2.csv", "data/ice_data_control2.csv"),
+    ("data/ice_data_state3.csv", "data/ice_data_control3.csv"),
+    ("data/ice_data_state4.csv", "data/ice_data_control4.csv"),
 ]
 
 # load dataset
@@ -17,7 +20,6 @@ dataset = VehicleDataset(data_files)
 
 # get input size and output size from the data
 input_size, output_size = dataset.io_size()
-print(dataset.features)
 
 # train, test, val ratios
 train_ratio = 0.64
@@ -64,11 +66,16 @@ dtrain = xgb.DMatrix(train_data, label=train_labels)
 dval = xgb.DMatrix(val_data, label=val_labels)
 dtest = xgb.DMatrix(test_data)
 
-# train and val evals
+# train and val evals and track
 evals = [(dtrain, 'train'), (dval, 'eval')]
+evals_result = {}
+
+# keep track of training and validation losses
+train_losses = []
+val_losses = []
 
 # num boosting rounds
-num_round = 100
+num_rounds = 100
 
 # xgb params
 xgb_params = {
@@ -76,21 +83,62 @@ xgb_params = {
     "eval_metric": "rmse",
     "eta": 0.1,
     "max_depth": 6,
-    "silent": 1,
-    "n_estimators": 100
 }
 
-# train xgb model
-model = xgb.train(
-    xgb_params,
-    dtrain,
-    num_round,
-    evals=evals,
-    early_stopping_rounds=10
-)
+# tqdm for tracking and initialize model
+t = tqdm(range(num_rounds), desc="Training...")
+model = None
+
+for round in t:
+    # train
+    model = xgb.train(
+        xgb_params,
+        dtrain,
+        num_boost_round=1,
+        evals=evals,
+        evals_result=evals_result,
+        xgb_model=model,
+        verbose_eval=False
+    )
+
+    # get losses
+    train_loss = evals_result['train']['rmse'][0]
+    val_loss = evals_result['eval']['rmse'][0]
+
+    train_losses.append(train_loss)
+    val_losses.append(val_loss)
+
+    # create description string
+    desc = f"Round {round+1}: "
+    desc += f"Training RMSE: {train_loss:.4f}, "
+    desc += f"Validation RMSE: {val_loss:.4f}"
+    t.set_description(desc)
 
 pred_labels = model.predict(dtest)
 
-mse = root_mean_squared_error(test_labels, pred_labels)
+mse = mean_squared_error(test_labels, pred_labels)
 
-print(f'Root Mean Squared Error (MSE): {mse}')
+print(f'Mean Squared Error (MSE): {mse}')
+
+# save model
+model.save_model("./models/xgb_ice.ubj")
+
+params_file = "./models/xgb_ice_params.json"
+params = {
+        "mean_data": mean_data.tolist(),
+        "std_dev_data": std_dev_data.tolist(),
+        "mean_labels": mean_labels.tolist(),
+        "std_dev_labels": std_dev_labels.tolist()
+}
+
+# write to json file
+with open(params_file, "w", encoding="utf-8") as f:
+    json.dump(params, f, ensure_ascii=False, indent=4)
+
+plt.plot(range(100), train_losses)
+plt.plot(range(100), val_losses)
+plt.legend(["Training Error", "Validation Error"])
+plt.xlabel("Epochs")
+plt.ylabel("Mean Squared Error")
+plt.title("Errors of XGB While Training on Ice Data")
+plt.show()
