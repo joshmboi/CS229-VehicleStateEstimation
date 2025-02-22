@@ -2,12 +2,19 @@ import torch
 import torch.optim as optim
 from torch.utils.data import random_split, DataLoader
 from tqdm import tqdm
-
+import matplotlib.pyplot as plt
 from nn import NN
 from vehicledataset import VehicleDataset
 
+data_files = [
+    ("data/ice_data_state1.csv", "data/ice_data_control1.csv"),
+    ("data/ice_data_state2.csv", "data/ice_data_control2.csv"),
+    ("data/ice_data_state3.csv", "data/ice_data_control3.csv"),
+    ("data/ice_data_state4.csv", "data/ice_data_control4.csv"),
+]
+
 # load dataset
-dataset = VehicleDataset("data/dry_data_state1.csv", "data/dry_data_control1.csv")
+dataset = VehicleDataset(data_files)
 
 # get input size and output size from the data
 input_size, output_size = dataset.io_size()
@@ -102,6 +109,8 @@ with torch.no_grad():
 mean_loss /= len(test_loader)
 print(f"Mean Loss: {mean_loss}")
 
+torch.save(model, "./models/ice")
+
 # get model weights from first layer
 weights = model.fc1.weight.data.abs().numpy()
 
@@ -114,3 +123,11 @@ sorted_features = sorted(importance.items(), key=lambda x: x[1], reverse=True)
 
 for feature, importance in sorted_features[:5]:
     print(f"{feature}: {importance:.4f}")
+
+plt.plot(range(1, 51), train_losses)
+plt.plot(range(1, 51), val_losses)
+plt.legend(["Training Error", "Validation Error"])
+plt.xlabel("Epochs")
+plt.ylabel("Mean Squared Error")
+plt.title("Errors of Model While Training on Ice Data")
+plt.show()
