@@ -37,20 +37,6 @@ class VehicleDataset(Dataset):
                 self.data = data
                 self.labels = labels
 
-        # Means and Standard Deviations for future reconstruction of values
-        self.data_means = torch.mean(self.data, dim=0)
-        self.data_std_dev = torch.std(self.data, dim=0)
-        self.labels_means = torch.mean(self.labels, dim=0)
-        self.labels_std_dev = torch.std(self.labels, dim=0)
-
-        # Normalized data and labels
-        self.data = (
-            self.data - self.data_means
-        ) / (self.data_std_dev + 1e-8)
-        self.labels = (
-            self.labels - self.labels_means
-        ) / (self.labels_std_dev + 1e-8)
-
         # Store feature names
         self.features = list(state.columns) + list(control.columns)
 

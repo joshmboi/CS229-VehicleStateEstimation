@@ -1,6 +1,6 @@
 import torch
 import torch.optim as optim
-from torch.utils.data import random_split, DataLoader
+from torch.utils.data import random_split, DataLoader, TensorDataset
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from nn import NN
@@ -36,14 +36,43 @@ val_size = int(val_ratio * dataset_size)
 test_size = dataset_size - train_size - val_size
 
 # split dataset
-train_data, val_data, test_data = random_split(
+train_dataset, val_dataset, test_dataset = random_split(
     dataset,
     [train_size, val_size, test_size]
 )
 
-train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
-test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
-val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
+# get tensors of random split data
+train_data = torch.stack([example[0] for example in train_dataset])
+train_labels = torch.stack([example[1] for example in train_dataset])
+test_data = torch.stack([example[0] for example in test_dataset])
+test_labels = torch.stack([example[1] for example in test_dataset])
+val_data = torch.stack([example[0] for example in val_dataset])
+val_labels = torch.stack([example[1] for example in val_dataset])
+
+# mean and std dev of training data
+# dont want mean and std dev w test data bc data leakage
+mean_data = torch.mean(train_data, dim=0)
+std_dev_data = torch.std(train_data, dim=0)
+mean_labels = torch.mean(train_labels, dim=0)
+std_dev_labels = torch.std(train_labels, dim=0)
+
+# normalize all data
+train_data = (train_data - mean_data) / std_dev_data
+test_data = (test_data - mean_data) / std_dev_data
+val_data = (val_data - mean_data) / std_dev_data
+
+train_labels = (train_labels - mean_labels) / std_dev_labels
+test_labels = (test_labels - mean_labels) / std_dev_labels
+val_labels = (val_labels - mean_labels) / std_dev_labels
+
+# recreate datasets
+train_dataset = TensorDataset(train_data, train_labels)
+test_dataset = TensorDataset(test_data, test_labels)
+val_dataset = TensorDataset(val_data, val_labels)
+
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
 
 # define model loss function and optimizing
 model = NN(input_size, output_size)
@@ -100,7 +129,7 @@ test_loss /= len(test_loader)
 print(f"Test Loss: {test_loss}")
 
 mean_loss = 0
-mean_val = torch.mean(dataset.labels, axis=0)
+mean_val = torch.mean(train_labels, axis=0)
 with torch.no_grad():
     for input, target in test_loader:
         output = mean_val.expand_as(target)
