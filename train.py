@@ -11,7 +11,7 @@ from nn import NN
 from vehicledataset import VehicleDataset
 
 # set surface
-surf = "dry"
+surf = "wet"
 
 # set hyperparams
 lr = 0.001
@@ -230,7 +230,7 @@ print(f"Mean Loss: {mean_loss}")
 
 # save models
 torch.save(nn_model, f"./models/nn_{surf}.pth")
-model.save_model(f"./models/xgb_{surf}.ubj")
+model.save_model(f"./models/xgb_{surf}.json")
 
 # get nn_model weights from first layer
 weights = nn_model.fc1.weight.data.abs().numpy()
