@@ -3,11 +3,12 @@ import torch
 from torch.utils.data import random_split
 import matplotlib.pyplot as plt
 import xgboost as xgb
+import numpy as np
 
 from vehicledataset import VehicleDataset
 
 # set surface and version
-surf = "ice"
+surf = "wet"
 ver = 4
 
 # get params
@@ -16,7 +17,7 @@ with open(f"./models/{surf}_params.json", "r") as f:
     params = json.load(f)
 
 # load models
-nn_model = torch.load(f"./models/nn_{surf}.pth")
+nn_model = torch.load(f"./models/nn_{surf}.pth", weights_only=False)
 nn_model.eval()
 # xgb_model = xgb.Booster().load_model(f"./models/xgb_{surf}.ubj")
 
@@ -47,23 +48,48 @@ nn_outputs = trial_input.unsqueeze(0)
 with torch.no_grad():
     for i in range(len(trial_data) - 1):
         trial_input = torch.cat(
-            (nn_model(trial_input), trial_data[i + 1][11:]),
+            (nn_model(trial_input), trial_data[i + 1][10:]),
         )
+        # print(torch.Tensor.size(nn_outputs))
+        # print(torch.Tensor.size(trial_input.unsqueeze(0)))
         nn_outputs = torch.cat((nn_outputs, trial_input.unsqueeze(0)), dim=0)
 
-x_ind = trial_dataset.features.index("posE_m")
-y_ind = trial_dataset.features.index("posN_m")
+t_5ms = np.linspace(0, 0.005 * len(trial_data), len(trial_data))
+x_ind = trial_dataset.features.index("vxCG_mps")
+y_ind = trial_dataset.features.index("vyCG_mps")
+yaw_rate_ind = trial_dataset.features.index("yawRate_radps")
 
 trial_x = trial_data[:, x_ind] * std_dev_data[x_ind] + mean_data[x_ind]
 trial_y = trial_data[:, y_ind] * std_dev_data[y_ind] + mean_data[y_ind]
+trial_yaw_rate = trial_data[:, yaw_rate_ind] * std_dev_data[yaw_rate_ind] + mean_data[yaw_rate_ind]
 
 nn_x = nn_outputs[:, x_ind] * std_dev_data[x_ind] + mean_data[x_ind]
 nn_y = nn_outputs[:, y_ind] * std_dev_data[y_ind] + mean_data[y_ind]
+nn_yaw_rate = nn_outputs[:, yaw_rate_ind] * std_dev_data[yaw_rate_ind] + mean_data[yaw_rate_ind]
 
-plt.plot(trial_x, trial_y, linestyle="-")
-plt.plot(nn_x, nn_y, linestyle="--")
-plt.xlabel("Position (m)")
-plt.ylabel("Position (m)")
+
+plt.figure()
+plt.plot(t_5ms, trial_x, linestyle="-")
+plt.plot(t_5ms, nn_x, linestyle="--")
+plt.xlabel("Time (s)")
+plt.ylabel("X-velocity (m/s)")
 plt.title(f"Predictions of NN from Initial State for {surf.capitalize()}")
 plt.legend(["Actual Trial Data", "NN Output"])
+
+plt.figure()
+plt.plot(t_5ms, trial_y, linestyle="-")
+plt.plot(t_5ms, nn_y, linestyle="--")
+plt.xlabel("Time (s)")
+plt.ylabel("Y-velocity (m/s)")
+plt.title(f"Predictions of NN from Initial State for {surf.capitalize()}")
+plt.legend(["Actual Trial Data", "NN Output"])
+
+plt.figure()
+plt.plot(t_5ms, trial_yaw_rate, linestyle="-")
+plt.plot(t_5ms, nn_yaw_rate, linestyle="--")
+plt.xlabel("Time (s)")
+plt.ylabel("Yaw Rate (rad/s)")
+plt.title(f"Predictions of NN from Initial State for {surf.capitalize()}")
+plt.legend(["Actual Trial Data", "NN Output"])
+
 plt.show()
