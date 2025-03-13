@@ -3,24 +3,25 @@ import scipy
 import pandas as pd
 
 state_save_fields = [
-    "axCG_mps2",
-    "ayCG_mps2",
+    # "axCG_mps2",
+    # "ayCG_mps2",
     "vxCG_mps",
     "vyCG_mps",
     "yawRate_radps"
     ]
 
 control_save_fields = [
-    "LFwheelSpeed_mps",
-    "LRwheelSpeed_mps",
-    "RFwheelSpeed_mps",
-    "RRwheelSpeed_mps",
+    # "LFwheelSpeed_mps",
+    # "LRwheelSpeed_mps",
+    # "RFwheelSpeed_mps",
+    # "RRwheelSpeed_mps",
     "brakePressureFL_bar",
     "brakePressureFR_bar",
     "brakePressureRL_bar",
     "brakePressureRR_bar",
     "engineTorque_Nm",
-    "pinionAngle_rad"
+    # "pinionAngle_rad"
+    "roadWheelAngle_rad"
     ]
 
 

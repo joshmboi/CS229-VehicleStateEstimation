@@ -9,7 +9,7 @@ from vehicledataset import VehicleDataset
 
 # set surface and version
 surf = "wet"
-ver = 4
+ver = 3
 
 # get params
 params = None
@@ -47,8 +47,9 @@ nn_outputs = trial_input.unsqueeze(0)
 
 with torch.no_grad():
     for i in range(len(trial_data) - 1):
+        # print(trial_data[i + 1][7:])
         trial_input = torch.cat(
-            (nn_model(trial_input), trial_data[i + 1][10:]),
+            (nn_model(trial_input), trial_data[i + 1][6:]),
         )
         # print(torch.Tensor.size(nn_outputs))
         # print(torch.Tensor.size(trial_input.unsqueeze(0)))

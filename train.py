@@ -11,7 +11,7 @@ from nn import NN
 from vehicledataset import VehicleDataset
 
 # set surface
-surf = "dry"
+surf = "ice"
 
 # set hyperparams
 lr = 0.001
