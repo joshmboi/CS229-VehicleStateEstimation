@@ -5,18 +5,8 @@ import pandas as pd
 state_save_fields = [
     "axCG_mps2",
     "ayCG_mps2",
-    "azCG_mps2",
-    "pitchAngle_rad",
-    "pitchRate_radps",
-    "posE_m",
-    "posN_m",
-    "posU_m",
-    "rollAngle_rad",
-    "rollRate_radps",
-    "sideSlip_rad",
     "vxCG_mps",
     "vyCG_mps",
-    "yawAngle_rad",
     "yawRate_radps"
     ]
 
@@ -30,7 +20,6 @@ control_save_fields = [
     "brakePressureRL_bar",
     "brakePressureRR_bar",
     "engineTorque_Nm",
-    "massEstimate_kg",
     "pinionAngle_rad"
     ]
 
