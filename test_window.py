@@ -10,6 +10,7 @@ from vehicledataset import VehicleDataset
 # set surface and version
 surf = "ice"
 ver = 3
+window_size = 1
 
 # get params
 params = None
@@ -40,21 +41,34 @@ std_dev_labels = torch.tensor(params["std_dev_labels"])
 
 trial_data = (trial_data - mean_data) / std_dev_data
 trial_labels = (trial_labels - mean_labels) / std_dev_labels
+        
+orig_dim = trial_data.size(1)
 
-# seed input and neural net outputs array
-trial_input = trial_data[0]
-nn_outputs = trial_input.unsqueeze(0)
+cur_window = []
+for i in range(window_size):
+    cur_window.append(trial_data[i])   # each is shape [orig_dim]
+cur_window = torch.cat(cur_window, dim=0)
 
+nn_outputs = []
 with torch.no_grad():
-    for i in range(len(trial_data) - 1):
-        # print(trial_data[i + 1][7:])
-        trial_input = torch.cat(
-            (nn_model(trial_input), trial_data[i + 1][6:]),
-        )
-        # print(torch.Tensor.size(nn_outputs))
-        # print(torch.Tensor.size(trial_input.unsqueeze(0)))
-        nn_outputs = torch.cat((nn_outputs, trial_input.unsqueeze(0)), dim=0)
+    # We start at index = window_size-1 because our initial window covers steps 0..3
+    for i in range(window_size - 1, len(trial_data)):
+        # Forward pass. The net was trained with input_dim = 4*orig_dim
+        # so we must pass a (1 x 4*orig_dim) tensor.
+        out = nn_model(cur_window.unsqueeze(0))  # shape (1, output_dim)
+        out = out.squeeze(0)                     # shape (output_dim,)
 
+        # Save the output for future plotting or analysis
+        nn_outputs.append(out)
+
+        # hift window for the next iteration (if i+1 < len(trial_data))
+        if i + 1 < len(trial_data):
+            # Drop the oldest block of orig_dim, add the next row of trial_data
+            cur_window = torch.cat([
+                cur_window[orig_dim:],       # remove the first orig_dim
+                trial_data[i + 1]           # add new step
+            ], dim=0)
+            
 t_5ms = np.linspace(0, 0.005 * len(trial_data), len(trial_data))
 x_ind = trial_dataset.features.index("vxCG_mps")
 y_ind = trial_dataset.features.index("vyCG_mps")
@@ -64,9 +78,18 @@ trial_x = trial_data[:, x_ind] * std_dev_data[x_ind] + mean_data[x_ind]
 trial_y = trial_data[:, y_ind] * std_dev_data[y_ind] + mean_data[y_ind]
 trial_yaw_rate = trial_data[:, yaw_rate_ind] * std_dev_data[yaw_rate_ind] + mean_data[yaw_rate_ind]
 
-nn_x = nn_outputs[:, x_ind] * std_dev_data[x_ind] + mean_data[x_ind]
-nn_y = nn_outputs[:, y_ind] * std_dev_data[y_ind] + mean_data[y_ind]
-nn_yaw_rate = nn_outputs[:, yaw_rate_ind] * std_dev_data[yaw_rate_ind] + mean_data[yaw_rate_ind]
+nn_x = []
+nn_y = []
+nn_yaw_rate = []
+
+for out in nn_outputs:
+    real_x = out[x_ind] * std_dev_data[x_ind] + mean_data[x_ind]
+    real_y = out[y_ind] * std_dev_data[y_ind] + mean_data[y_ind]
+    real_yaw = out[yaw_rate_ind] * std_dev_data[yaw_rate_ind] + mean_data[yaw_rate_ind]
+
+    nn_x.append(real_x.item())
+    nn_y.append(real_y.item())
+    nn_yaw_rate.append(real_yaw.item())
 
 
 plt.figure()

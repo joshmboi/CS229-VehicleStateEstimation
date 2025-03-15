@@ -9,6 +9,7 @@ from sklearn.metrics import mean_squared_error
 
 from nn import NN
 from vehicledataset import VehicleDataset
+from vehicledatasetwindow import VehicleDatasetWindow
 
 # set surface
 surf = "ice"
@@ -17,18 +18,20 @@ surf = "ice"
 lr = 0.001
 batch_size = 64
 num_epochs = 50
+window_size = 1
 
 
 def get_datasets(surf):
     data_files = [
-        (f"data/{surf}_data_state1.csv", f"data/{surf}_data_control1.csv"),
-        (f"data/{surf}_data_state2.csv", f"data/{surf}_data_control2.csv"),
-        (f"data/{surf}_data_state3.csv", f"data/{surf}_data_control3.csv"),
-        (f"data/{surf}_data_state4.csv", f"data/{surf}_data_control4.csv"),
+        # (f"data/{surf}_data_state1.csv", f"data/{surf}_data_control1.csv"),
+        # (f"data/{surf}_data_state2.csv", f"data/{surf}_data_control2.csv"),
+        (f"data/{surf}_data_state3.csv", f"data/{surf}_data_control3.csv")
+        # (f"data/{surf}_data_state4.csv", f"data/{surf}_data_control4.csv"),
     ]
 
     # load dataset
     dataset = VehicleDataset(data_files)
+    # dataset = VehicleDatasetWindow(data_files, window_size=window)
 
     # get input size and output size from the data
     input_size, output_size = dataset.io_size()
@@ -93,8 +96,26 @@ def get_datasets(surf):
         dataset.features
     )
 
+def build_time_windows(X, Y, window_size=1):
+    new_x, new_y = [], []
+
+    for i in range(window_size - 1, len(X)):
+        # Stack the previous 'window_size' inputs into one big vector
+        x_window = []
+        for j in range(window_size):
+            x_window.append(X[i - j])
+        x_window = torch.cat(x_window[::-1])
+        new_x.append(x_window)
+        new_y.append(Y[i])
+
+    return torch.stack(new_x), torch.stack(new_y)
 
 io, train, test, val, features = get_datasets(surf)
+
+io[0] = io[0]*window_size
+train[0], train[1] = build_time_windows(train[0], train[1], window_size)
+test[0], test[1] = build_time_windows(test[0], test[1], window_size)
+val[0], val[1] = build_time_windows(val[0], val[1], window_size)
 
 # recreate datasets
 train_dataset = TensorDataset(train[0], train[1])
