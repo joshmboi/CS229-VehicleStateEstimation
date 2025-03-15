@@ -7,14 +7,16 @@ state_save_fields = [
     # "ayCG_mps2",
     "vxCG_mps",
     "vyCG_mps",
+    "pitchRate_radps",
+    "rollRate_radps",
     "yawRate_radps"
     ]
 
 control_save_fields = [
-    # "LFwheelSpeed_mps",
-    # "LRwheelSpeed_mps",
-    # "RFwheelSpeed_mps",
-    # "RRwheelSpeed_mps",
+    "LFwheelSpeed_mps",
+    "LRwheelSpeed_mps",
+    "RFwheelSpeed_mps",
+    "RRwheelSpeed_mps",
     "brakePressureFL_bar",
     "brakePressureFR_bar",
     "brakePressureRL_bar",
