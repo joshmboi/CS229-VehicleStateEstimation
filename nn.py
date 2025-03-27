@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 
 
@@ -7,17 +6,19 @@ class NN(nn.Module):
     Creates Simple Neural Network.
 
     Fields:
-    input_dim - number of inputs
-    output_dim - number of outputs
+    input_dim (int) - number of inputs
+    hidden_dim (int) - number of neurons in hidden layer
+    output_dim (int) - number of outputs
+    activation (func) - activation function
     """
 
-    def __init__(self, input_dim, output_dim):
+    def __init__(self, input_dim, hidden_dim, output_dim, activation):
         super(NN, self).__init__()
 
         # Three fully connected layers for network
-        self.fc1 = nn.Linear(input_dim, 64)
-        self.fc2 = nn.Linear(64, 32)
-        self.fc3 = nn.Linear(32, output_dim)
+        self.fc1 = nn.Linear(input_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, output_dim)
+        self.activation = activation
 
     def forward(self, x):
         """
@@ -26,6 +27,5 @@ class NN(nn.Module):
         Inputs:
         x - input vector
         """
-        f1 = torch.relu(self.fc1(x))
-        f2 = torch.relu(self.fc2(f1))
-        return self.fc3(f2)
+        f1 = self.activation(self.fc1(x))
+        return self.fc2(f1)
